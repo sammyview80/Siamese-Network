@@ -1,6 +1,7 @@
 import cv2
 import os
 from main import Preprocessing
+import time
 
 
 def live():
@@ -33,17 +34,18 @@ def live():
         )
     
         # Draw a rectangle around the faces
+
         for (x, y, w, h) in faces:
             cv2.rectangle(frames, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
             # Getting the image 
-            img = frames[y+5:y+h+5, x+5:x+w+5]
+            img = frames[y:y+h, x:x+w]
 
             prediction = P.compare(img)
             print(f'p: {prediction}')
 
             if prediction is not None:
-                cv2.putText(frames, str(prediction), (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(frames, str(prediction), (x-5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
         # Display the resulting frame
         cv2.imshow('Video', frames)

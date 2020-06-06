@@ -2,9 +2,12 @@ import os
 import numpy as np
 import tensorflow as tf 
 import cv2 as cv
+import matplotlib.pyplot as plt 
 from data import LoadData
 from siamese import Models
 from tensorflow.keras.models import model_from_json
+from mtcnn import MTCNN
+
 
 
 
@@ -26,15 +29,17 @@ class Main():
         model.fit(self.x_left, self.x_right, self.y_train, epochs=5)
         model.save()
         
-    def  run(self, load_data=True):
+    def run(self, load_data=True):
         self.load_data()
         self.create_model()
 
     def unique_output(self):
-        return np.unique(self.y_train)
+        y_train = np.load('Savedtraintestdata/y_train.npy')
+        # print(y_train.shape)
+        return np.unique(y_train)
 
     def load_model(self):
-        return tf.keras.models.load_model('save/model.h5') 
+        return tf.keras.models.load_model('save/super.h5') 
 
 
 
@@ -42,27 +47,56 @@ class Preprocessing():
     def __init__(self):
         self.DBfile = os.listdir('database')
         self.path = 'database/'
+        self.detector = MTCNN()
         self.files = []
+
+    def get_face(self, image):
+        
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+        results = self.detector.detect_faces(image)
+
+        # print(results[0])
+        x1, y1, width, height = results[0]['box']
+
+        x1, y1 = abs(x1), abs(y1)
+
+        face = image[y1:y1+height, x1:x1+width]
+
+        # plt.imshow(face, plt.cm.binary)
+        # plt.show()
+
+        # plt.imshow(face, plt.cm.binary)
+        # plt.show()
+
+        # print(face.shape)
+            
+    
+
+        return face         
+
 
     def setup(self):
         m = Main()
-        m.load_data()
+        # m.load_data()
         self.model = m.load_model()
         self.unique_output = m.unique_output() 
         
     def read_file(self):
         for i in range(0, len(self.DBfile)):
             DBimage = cv.imread(f'{self.path}{self.DBfile[i]}', 1)
+            DBimage = self.get_face(DBimage)
             DBimage = self.preprocess(DBimage)
             self.files.append(DBimage)
         # return self.files 
 
     def resize(self, image):
-        return cv.resize(image, (28, 28))
+        return cv.resize(image, (35, 35))
+
 
     def preprocess(self, image):
         image = self.resize(image)
-        image = image.reshape(1, 28, 28, 3)
+        image = image.reshape(1, 35, 35, 3)
         image = image/255
         # print(image.shape)
         return image 
@@ -76,8 +110,6 @@ class Preprocessing():
 
             # print(prediction)
             prediction = self.unique_output[np.argmax(prediction)]
-
-            
 
             if prediction == 1:
                 # print(self.DBfile[i])

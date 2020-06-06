@@ -1,16 +1,17 @@
 import os 
+import time
 import random 
 import numpy as np 
 import tensorflow as tf 
 import cv2 as cv 
 import matplotlib.pyplot as plt 
-
+from mtcnn import MTCNN
 
 
 class LoadData():
     def __init__(self):
         # Loading the data 
-        pass
+        self.detectot = MTCNN()
 
     def create_data(self):
         fotos = os.listdir('foto/')
@@ -43,11 +44,17 @@ class LoadData():
                 image1 = cv.imread(os.path.join(path, dir_files[j]), 1)
                 image2 = cv.imread(os.path.join(path, dir_files[j+1]), 1)
                 # print(image1.shape)
-                image1 = cv.resize(image1, (28, 28))
-                image2 = cv.resize(image2, (28, 28))
-
+                image1 = self.get_face(image1)
+                image2 = self.get_face(image2)
                 pre_data1.append(np.array((image1, image2)))
                 labels1.append(1)
+                # pre_data1.append(np.array((image1, np.flip(image2))))
+                # labels1.append(1)
+                # pre_data1.append(np.array((np.rot90(image1), image2)))
+                # labels1.append(1)
+                # pre_data1.append(np.array((np.flip(image1), np.rot90(image2))))
+                # labels1.append(1)
+
 
         pre_data2 = []
         labels2 = []
@@ -59,11 +66,12 @@ class LoadData():
                 if dir_files_following[j]:
                     image1 = cv.imread(f'{path}/{dir_files[j]}', 1)
                     image2 = cv.imread(f'data/{files[i+1]}/{dir_files_following[j]}', 1)
-                    image1 = cv.resize(image1, (28, 28))
-                    image2 = cv.resize(image2, (28, 28))
-
+                    image1 = self.get_face(image1)
+                    image2 = self.get_face(image2)
                     pre_data2.append(np.array((image1, image2)))
                     labels2.append(0)
+                    # pre_data2.append(np.array((image1, np.flip(image2))))
+                    # labels2.append(0)
 
         dataset1 = self.merge_data(pre_data1, labels1)
         dataset2 = self.merge_data(pre_data2, labels2)
@@ -80,7 +88,6 @@ class LoadData():
 
         return dataset 
 
-        
     def merge_data(self, pre_data, label):
         dataset = []
         for i in range(0, len(pre_data)):
@@ -120,7 +127,7 @@ class LoadData():
         # x_train_right = x_train_right[:, :, :, tf.newaxis]
         # x_train_left = x_train_left[:, :, :, tf.newaxis]
 
-        np.save('left.npy', x_train_left) # save
+        np.save('Savedtraintestdata/left.npy', x_train_left) # save
 
 
         np.save('Savedtraintestdata/right.npy', x_train_right) # save
@@ -132,16 +139,125 @@ class LoadData():
 
         
 
+    def get_face(self, image):
         
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+        results = self.detectot.detect_faces(image)
+
+        try:
+            # print(results[0])
+            x1, y1, width, height = results[0]['box']
+
+            x1, y1 = abs(x1), abs(y1)
+
+            face = image[y1:y1+height, x1:x1+width]
+
+            # plt.imshow(face, plt.cm.binary)
+            # plt.show()
+
+            # print(face.shape)
+            
+        
+        except IndexError:
+            face = image 
+
+        face = cv.resize(face, (35, 35))
+
+        return face         
 
         # new_num_arr = np.load('data.npy') # load
 
 
+# class TripletLossData():
+#     def __init__(self):
+#         self.main_folder_path = 'data'
+#         self.detectot = MTCNN()
+
+#     def get_dataset(self, read_asarray = False):
+#         main_folder = os.listdir(self.main_folder_path)
+#         for i in range(0, len(main_folder)-1):
+#             # Getinto first folder 
+#             folder1 = os.listdir('{}/{}'.format(self.main_folder_path, main_folder[i]))
+#             folder2 = os.listdir('{}/{}'.format(self.main_folder_path, main_folder[i+1]))
+#             folder1_path = '{}/{}'.format(self.main_folder_path, main_folder[i])
+#             folder2_path = '{}/{}'.format(self.main_folder_path, main_folder[i+1])
+#             for j in range(0, min(len(folder1), len(folder2))-1):
+#                 anchor = '{}/{}'.format(folder1_path, folder1[j])
+#                 positive = '{}/{}'.format(folder1_path, folder1[j+1])
+#                 negative = '{}/{}'.format(folder2_path, folder2[j])
+#                 if read_asarray:
+#                     #Getting the face with filepath
+#                     anchor_array = self.get_face(anchor)
+#                     positive_array = self.get_face(positive)
+#                     negative_array = self.get_face(negative)
+                    
+#                     # print(f'[{anchor_array.shape, positive_array.shape, negative_array.shape}]')
+
+
+
+                
+                # """"
+                # print(f'[{anchor, positive, negative}]')
+                # results:
+                # [('29-p290.jpg', '29-p294.jpg', 'Queen_Elizabeth_II_0009.jpg')]
+                # [('29-p294.jpg', '29-p296.jpg', 'Queen_Elizabeth_II_0011.jpg')]
+                # [('29-p296.jpg', '29-p291.jpg', 'Queen_Elizabeth_II_0004.jpg')]
+                # [('29-p291.jpg', '29-p297.jpg', 'Queen_Elizabeth_II_0001.jpg')]
+                # [('29-p297.jpg', '29-p298.jpg', 'Queen_Elizabeth_II_0006.jpg')]
+                # [('29-p298.jpg', '29-p293.jpg', 'Queen_Elizabeth_II_0002.jpg')]
+                # [('29-p293.jpg', '29-p295.jpg', 'Queen_Elizabeth_II_0003.jpg')]
+                
+                # """
+        # folder = os.listdir(self.data_path)
+        # next_files = os.listdir(self.file_path.format(files[i+1]))
+        # for files in range(0, len(folder)):
+        #     folder_inside = os.listdir(self.file_path.format(files[i]))
+        #     image1 = folder_inside[i]
+        #     image2 = folder_inside[i+1]
+        #     image2 = 
+    #         # Reading image with cv 
+    # def get_face(self, imagePath):
+
+    #     image = cv.imread(imagePath, 1)
+    
+    #     image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+    #     results = self.detectot.detect_faces(image)
+
+    #     try:
+    #         # print(results[0])
+    #         x1, y1, width, height = results[0]['box']
+
+    #         x1, y1 = abs(x1), abs(y1)
+
+    #         face = image[y1:y1+height, x1:x1+width]
+
+    #         # plt.imshow(face, plt.cm.binary)
+    #         # plt.show()
+
+    #         # print(face.shape)
+            
+        
+    #     except IndexError:
+    #         face = image 
+
+    #     face = cv.resize(face, (35, 35))
+
+    #     return face         
 
 if __name__ == "__main__":
     # LoadData().create_data()
+    start = time.time()
     x1, x2, y = LoadData().load()
+    end = time.time()
+    print(f'Total_Time: {end - start}')
     print(x1.shape, x2.shape, y.shape)
+    # start = time.time()
+    # t = TripletLossData()
+    # t.get_dataset(read_asarray=True)
+    # end = time.time()
+    # print(f'Total_Time: {end - start}')
     
 
   

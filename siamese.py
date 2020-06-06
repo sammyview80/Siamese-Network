@@ -30,7 +30,6 @@ class Models():
         model.add(BatchNormalization())
 
         model.add(Dense(265, activation='relu'))
-        model.add(BatchNormalization())
         
         encoder_1 = model(self.left_input)
         encoder_2 = model(self.right_input)
